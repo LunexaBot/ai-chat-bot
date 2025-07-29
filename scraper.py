@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 import os
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -24,7 +23,7 @@ def embed_chunks(chunks):
     embeddings = []
     for chunk in chunks:
         resp = openai.embeddings.create(model="text-embedding-ada-002", input=chunk)
-        embeddings.append(resp['data'][0]['embedding'])
+        embeddings.append(resp.data[0].embedding)  # <-- Fixed here
     return np.array(embeddings)
 
 def build_index(url):
