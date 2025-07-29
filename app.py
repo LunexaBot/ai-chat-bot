@@ -38,3 +38,14 @@ async def query_website(req: QueryRequest):
 @app.get("/")
 async def health():
     return {"status": "ok"}
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the AI Chatbot API! Use POST /chat to interact."}
+
+# ... your existing /chat POST route code below ...
+
