@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles  # <- added
 from pydantic import BaseModel
 from scraper import build_index
 import numpy as np
@@ -8,6 +9,10 @@ from openai import OpenAI
 import os
 
 app = FastAPI()
+
+# Mount static files at root, serve HTML by default
+app.mount("/", StaticFiles(directory=".", html=True), name="static")  # <- added
+
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # CORS settings
