@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles  # <- added
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from scraper import build_index
 import numpy as np
@@ -10,17 +10,17 @@ import os
 
 app = FastAPI()
 
-# Mount static files at root, serve HTML by default
-app.mount("/", StaticFiles(directory=".", html=True), name="static")  # <- added
+# Serve static files (like widget.html) under /static
+app.mount("/static", StaticFiles(directory="."), name="static")
 
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # CORS settings
-origins = ["*"]  # For testing; replace with specific domains for production
+origins = ["*"]  # For testing; restrict in production
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
