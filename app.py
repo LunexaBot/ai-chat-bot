@@ -38,6 +38,9 @@ async def index_website(req: IndexRequest):
 
 @app.post("/query")
 async def query_website(req: QueryRequest):
+    if 'chunks' not in memory or 'embeddings' not in memory:
+        return {"answer": "The website is not indexed yet. Please send a POST request to /index with the website URL first."}
+
     q = req.question
     emb = openai.embeddings.create(model="text-embedding-ada-002", input=q)['data'][0]['embedding']
     sims = cosine_similarity([emb], memory['embeddings'])[0]
