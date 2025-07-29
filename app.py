@@ -15,8 +15,10 @@ app.mount("/static", StaticFiles(directory="."), name="static")
 
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# CORS settings
-origins = ["*"]  # For testing; restrict in production
+# CORS settings - restrict to your Wix domain for production
+origins = [
+    "https://pennytoleman.wixsite.com"
+]
 
 app.add_middleware(
     CORSMiddleware,
