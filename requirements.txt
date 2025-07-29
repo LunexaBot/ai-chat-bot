@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+openai
+beautifulsoup4
+requests
+scikit-learn
+python-dotenv
