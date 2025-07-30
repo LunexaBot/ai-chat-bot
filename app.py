@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -10,55 +10,72 @@ import os
 
 app = FastAPI()
 
-# ✅ Add the exact origins you want to allow (Wix in this case)
+# ✅ Allow requests from multiple domains — adjust later for specific clients
 origins = [
     "https://pennytoleman.wixsite.com",
-    "https://pennytoleman-wixsite-com.filesusr.com"  # optional if using external widget loader
+    "https://pennytoleman-wixsite-com.filesusr.com",
+    "*"  # 🧪 for testing across other client sites (you can restrict this in production)
 ]
 
-# ✅ Attach CORS middleware with those origins
+# ✅ Apply CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # restrict to only your sites
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve static files (like widget.html) under /static
+# ✅ Serve static files like your widget.html
 app.mount("/static", StaticFiles(directory="."), name="static")
 
+# ✅ OpenAI setup
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# ✅ Memory: store each client’s data under their site_id
+memory = {}
+
+# ✅ Models
 class IndexRequest(BaseModel):
     url: str
+    site_id: str
 
 class QueryRequest(BaseModel):
     question: str
+    site_id: str
 
-memory = {}
-
+# ✅ Indexing endpoint
 @app.post("/index")
 async def index_website(req: IndexRequest):
     chunks, embeddings = build_index(req.url)
-    memory['chunks'] = chunks
-    memory['embeddings'] = embeddings
-    return {"status": "indexed", "chunks": len(chunks)}
+    memory[req.site_id] = {
+        "chunks": chunks,
+        "embeddings": embeddings
+    }
+    return {"status": "indexed", "chunks": len(chunks), "site_id": req.site_id}
 
+# ✅ Querying endpoint
 @app.post("/query")
 async def query_website(req: QueryRequest):
-    if 'chunks' not in memory or 'embeddings' not in memory:
-        return {"answer": "The website is not indexed yet. Please send a POST request to /index with the website URL first."}
+    if req.site_id not in memory:
+        return {"answer": "❌ This site has not been indexed yet. Please contact the website owner."}
+
+    chunks = memory[req.site_id]['chunks']
+    embeddings = memory[req.site_id]['embeddings']
 
     q = req.question
     emb = openai.embeddings.create(model="text-embedding-ada-002", input=q).data[0].embedding
-    sims = cosine_similarity([emb], memory['embeddings'])[0]
+    sims = cosine_similarity([emb], embeddings)[0]
     top_ix = np.argsort(sims)[-3:]
-    context = "\n\n".join([memory['chunks'][i] for i in reversed(top_ix)])
+    context = "\n\n".join([chunks[i] for i in reversed(top_ix)])
     prompt = f"You are a helpful assistant. Use the context to answer:\n\nContext:\n{context}\n\nQuestion: {q}"
-    resp = openai.chat.completions.create(model="gpt-4", messages=[{"role":"system","content":prompt}])
+    resp = openai.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": prompt}]
+    )
     return {"answer": resp.choices[0].message.content}
 
+# ✅ Health check
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the AI Chatbot API! Use POST /query to ask questions."}
+    return {"message": "✅ AI Chatbot API is running. POST to /query or /index with site_id to interact."}
