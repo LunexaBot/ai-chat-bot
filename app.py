@@ -63,11 +63,15 @@ async def query_website(req: QueryRequest):
     chunks = memory[req.site_id]['chunks']
     embeddings = memory[req.site_id]['embeddings']
 
+    # --- AMENDMENT START ---
+    # Fix the ValueError: The truth value of an empty array is ambiguous
+    # Check if chunks list is empty OR if embeddings numpy array is empty
+    if not chunks or embeddings.size == 0:
+        return {"answer": "Sorry, the site has not been indexed properly yet, or it contains no relevant text to answer your question."}
+    # --- AMENDMENT END ---
+
     q = req.question
     emb = openai.embeddings.create(model="text-embedding-ada-002", input=q).data[0].embedding
-
-    if not embeddings:
-        return {"answer": "Sorry, the site has not been indexed properly yet."}
 
     sims = cosine_similarity([emb], embeddings)[0]
     top_ix = np.argsort(sims)[-3:]
