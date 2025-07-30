@@ -65,7 +65,10 @@ async def query_website(req: QueryRequest):
 
     q = req.question
     emb = openai.embeddings.create(model="text-embedding-ada-002", input=q).data[0].embedding
-    sims = cosine_similarity([emb], embeddings)[0]
+    if not memory['embeddings']:
+    return {"answer": "Sorry, the site has not been indexed properly yet."}
+
+sims = cosine_similarity([emb], memory['embeddings'])[0]
     top_ix = np.argsort(sims)[-3:]
     context = "\n\n".join([chunks[i] for i in reversed(top_ix)])
     prompt = f"You are a helpful assistant. Use the context to answer:\n\nContext:\n{context}\n\nQuestion: {q}"
